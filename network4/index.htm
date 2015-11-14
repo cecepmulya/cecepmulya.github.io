@@ -1,1 +1,299 @@
-<canvas id="canvas"></canvas>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'">
+    <title>cecepmulya | network 4</title>
+    <style type="text/css" media="screen">
+    body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+    var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+
+'floor|ceil|random|round|abs|sqrt|PI|atan2|sin|cos|pow|max|min'
+  .split('|')
+  .forEach(function(p) { window[p] = Math[p]; });
+
+var TAU = PI*2;
+
+function r(n) { return random()*n; }
+function rrng(lo, hi) { return lo + r(hi-lo); }
+function rint(lo, hi) { return lo + floor(r(hi - lo + 1)); }
+function choose() { return arguments[r(arguments.length)|0]; }
+function choose1(arr) { return arr[r(arr.length)|0]; }
+
+/*---------------------------------------------------------------------------*/
+
+var W, H, frame, t0, time;
+var DPR = devicePixelRatio;
+
+function dpr(n) { return n * DPR; }
+
+function resize() {
+  var w = innerWidth;
+  var h = innerHeight;
+  
+  canvas.style.width = w+'px';
+  canvas.style.height = h+'px';
+  
+  W = canvas.width = w * DPR;
+  H = canvas.height = h * DPR;
+}
+
+function loop(t) {
+  frame = requestAnimationFrame(loop);
+  draw();
+  time++;
+}
+
+function pause() {
+  cancelAnimationFrame(frame);
+  frame = null;
+}
+
+function play() {
+  frame = frame || requestAnimationFrame(loop);
+}
+
+function toggle() {
+  frame ? pause() : play();
+}
+
+function reset() {
+  cancelAnimationFrame(frame);
+  resize();
+  ctx.clearRect(0, 0, W, H);
+  init();
+  time = 0;
+  frame = requestAnimationFrame(loop);
+}
+
+/*---------------------------------------------------------------------------*/
+function Arr() {
+  this.arr = [];
+  this.len = 0;
+}
+
+Arr.prototype.push = function(x) { this.arr[this.len++] = x; };
+Arr.prototype.concat = function(a) { 
+  for (var i = 0; i < a.length; i++) this.push(a[i]);
+};
+Arr.prototype.clear = function() { this.len = 0; };
+Arr.prototype.each = function(cb) {
+  for (var i = 0; i < this.len; i++) cb(this.arr[i]);
+};
+Arr.prototype.choose1 = function() {
+  return this.arr[r(this.len)|0];
+};
+
+
+function Lattice(w, h, res) {
+  this.w = w;
+  this.h = h;
+  this.res = res;
+  var ncols = this.ncols = ceil(w / res);
+  var nrows = this.nrows = ceil(h / res);
+  this.bins = new Array(ncols);
+  for (var i = 0; i < ncols; i++) {
+    this.bins[i] = new Array(nrows);
+    for (var j = 0; j < nrows; j++) {
+      var bin = this.bins[i][j] = new Array(NODES_PER_BIN);
+      for (var k = 0; k < bin.length; k++) {
+        var x = i * res;
+        var y = j * res;
+        bin[k] = new Node(this, rint(x, x+res), rint(y, y+res));
+      }
+    }
+  }
+}
+
+Lattice.prototype.randomBin = function() {
+  return choose1(choose1(this.bins));
+};
+
+var bins = new Arr();
+
+Lattice.prototype.findAFriend = function(node, n) {
+  var col = floor(node.x / this.res);
+  var row = floor(node.y / this.res);
+  var bin;
+  bins.clear();
+  
+  for (var c = col-2; c <= col+2; c++) {
+    var cc = this.bins[c];
+    if (!cc) continue;
+    for (var r = row-2; r <= row+2; r++) {
+      bin = cc[r];
+      if (Array.isArray(bin)) bins.push(bin);      
+    }
+    if (random() < 0.001) {
+      bins.push(this.randomBin());
+    }
+  }
+  var friends = new Array(n);
+  while (n--) friends[n] = choose1(bins.choose1());
+  return friends;
+};
+
+Lattice.prototype.findNearest = function(p) {
+  var col = floor(p.x / this.res);
+  var row = floor(p.y / this.res);
+  var d2 = Infinity;
+  var bin, closest;
+  
+  for (var c = col-1; c <= col+1; c++) {
+    var cc = this.bins[c];
+    if (!cc) continue;
+    for (var r = row-1; r <= row+1; r++) {
+      bin = cc[r];
+      if (!Array.isArray(bin)) return;
+      for (var i = 0; i < NODES_PER_BIN; i++) {
+        var noded2 = bin[i].d2(p);
+        if (noded2 < d2) {
+          closest = bin[i];
+          d2 = noded2;
+        }
+      }
+    }
+  }
+  return closest;
+};
+
+Lattice.prototype.each = function(cb) {
+  for (var c = 0; c < this.ncols; c++) {
+    for (var r = 0; r < this.nrows; r++) {
+      var bin = this.bins[c][r];
+      for (var i = 0; i < NODES_PER_BIN; i++) {
+        cb(bin[i]);
+      }
+    }
+  }
+};
+
+Lattice.prototype.eachActive = function(cb) {
+  this.each(function(node) {
+    if (!node.isActive) return;
+    cb(node);
+  });
+};
+
+function Node(lattice, x, y) {
+  this.lattice = lattice;
+  this.x = x;
+  this.y = y;
+  this.isActive = false;
+  this.activatedAt = 0;
+  this.friends = [];
+  this.p = 1;
+}
+
+Node.prototype.activate = function(t, p) {
+  this.isActive = true;
+  this.activatedAt = t;
+  this.friends = this.lattice.findAFriend(this, 3);
+  this.p = p;
+};
+
+Node.prototype.update = function(t) {
+  this.p *= DECAY;
+  var p = this.p;
+  if (this.isActive && (t - this.activatedAt >= 2)) {
+    this.isActive = false;
+    this.friends.forEach(function(friend) {
+      if (random() < p) friend.activate(t, p);
+    });
+  }
+};
+
+Node.prototype.d2 = function(p) {
+  var dx = this.x - p.x;
+  var dy = this.y - p.y;
+  return dx*dx + dy*dy;
+}
+
+
+
+function hsla(h) {
+  var s = '85%';
+  var l = '49%';
+  return 'hsla('+h+','+s+','+l+',0.16)';
+}
+
+/*---------------------------------------------------------------------------*/
+
+var N = 10000;
+var P;
+var ons;
+var lattice;
+var NODES_PER_BIN = 2;
+var DECAY = 0.987;
+
+function init() {
+  var res = dpr(6);
+  lattice = new Lattice(W, H, res);  
+  ons = new Arr(floor((W/res) * (H/res) * NODES_PER_BIN));
+ 
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineWidth = dpr(0.5);
+
+  var p = {x: W/2, y: H/2};
+  var node = lattice.findNearest(p);
+  node.activate(1, 1);
+}
+
+function draw() { 
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  
+  if (time % 40 === 0) {
+    var n = 1;
+    while(n--) {
+      var p = {x: r(W), y: r(H)};
+      var node = lattice.findNearest(p);
+      node.activate(time, 1)
+    }
+  }
+
+  ctx.strokeStyle = hsla(time % 360);
+
+  lattice.eachActive(function(node) { node.update(time); });
+  ons.clear();
+  lattice.eachActive(function(node) {
+    if (!node.isActive) return;
+    ons.push(node);
+  });  
+
+  drawLines(ons, dpr(0.5));
+}
+
+function drawLines(nodes) {
+  ctx.beginPath();
+  nodes.each(function(node) {
+    node.friends.forEach(function(friend) {
+      ctx.moveTo(node.x, node.y);
+      ctx.lineTo(friend.x, friend.y);
+    });
+  });
+  ctx.closePath();
+  ctx.stroke();
+}
+
+/*---------------------------------------------------------------------------*/
+document.onclick = toggle;
+document.ondblclick = reset;
+reset();
+    </script>
+    <canvas id="canvas"></canvas>
+    </body>
+    </html>
