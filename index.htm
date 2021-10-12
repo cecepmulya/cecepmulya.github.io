@@ -1,11 +1,11 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable = no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+	<meta charset="UTF-8">
+    	<meta http-equiv="X-UA-Compatible" content="IE=Edge;chrome=1">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable = no">
+    	<meta name="apple-mobile-web-app-capable" content="yes">
+    	<meta name="apple-mobile-web-app-status-bar-style" content="black">
 	<meta name="msapplication-TileColor" content="#08090A" />
 	<meta name="theme-color" content="#08090A" />
 	<meta name="keywords" content="3D Solar System" />
@@ -14,13 +14,37 @@
 	<meta name="twitter:url" value="https://www.twitter.com/CecepSan" />
 	<meta property="og:url" content="https://cecep.my.id/" />
 	<meta property="og:site_name" content="CECEP.MY.ID" />
-    <title dir="ltr">3D Solar System | CECEP.MY.ID</title>
-    <link rel="stylesheet" type="text/css" media="screen" href="//raw.githack.com/cecepmulya/css/main/styles.css">
-  </head>
-  <body class="opening hide-UI view-2D zoom-large data-close controls-close">
+  <title>3D Solar System | CECEP.MY.ID</title>
+  <link rel="stylesheet" href="//raw.githack.com/cecepmulya/css/main/styles.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min.js"></script>
+<script src="//raw.githack.com/cecepmulya/js/master/howler.min.js"></script>
+    <style>
+    .back {
+        color: white;
+        text-decoration: none;
+        font-size: 16px;
+    }
+    </style>
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<body class="opening hide-UI view-2D zoom-large data-close controls-close">
+    <script>
+        var sound = new Howl({
+            src: ['//media1.vocaroo.com/mp3/1l9dR0KgRIHV'],
+            autoplay: true,
+            loop: true,
+            volume: 1.0,
+            onend: function() {
+                console.log('Finished!');
+            }
+        });
+        sound.play();
+    </script>
     <div id="navbar">
       <a id="toggle-data" href="#data"><i class="icon-data"></i>Data</a>
-      <h1>3D Solar System<br>Follow me On twitter @CecepSan</h1>
+      <h1>3D Solar System<br><span>Follow me On twitter <a href="//twitter.com/CecepSan" target="_blank">@CecepSan</a></span>
+      <br><span>Or Visit My <a href="//blog.cecep.my.id" target="_blank">Blog</a></span></h1>
       <a id="toggle-controls" href="#controls"><i class="icon-controls"></i>Controls</a>
     </div>
     <div id="data">
@@ -161,5 +185,8 @@
     <script src="//raw.githack.com/cecepmulya/js/master/prefixfree.min.js"></script>
     <script src="//raw.githack.com/cecepmulya/js/master/scripts.min.js"></script>
   </body>
-  
+<!-- partial -->
+  <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script><script  src="//raw.githack.com/cecepmulya/js/master/scrypt.js"></script>
+
+</body>
 </html>
